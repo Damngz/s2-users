@@ -16,22 +16,27 @@ public class User {
   @Column(name = "id")
   private Long id;
 
-  @NotBlank(message = "No puede ingresar un nombre de usuario vacío")
+  @NotBlank(message = "Debe ingresar un nombre de usuario")
   @Column(name = "username")
   private String username;
 
+  @NotBlank(message = "Debe ingresar una contraseña")
   @Column(name = "password")
   private String password;
 
+  @NotBlank(message = "Debe ingresar un email")
   @Column(name = "email")
   private String email;
 
+  @NotBlank(message = "Debe ingresar un nombre")
   @Column(name = "name")
   private String name;
 
+  @NotBlank(message = "Debe ingresar una dirección")
   @Column(name = "address")
   private String address;
 
+  @NotBlank(message = "Debe ingresar un rol")
   @Column(name = "role")
   private String role;
 
