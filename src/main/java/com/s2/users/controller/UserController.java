@@ -2,8 +2,13 @@ package com.s2.users.controller;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,13 +37,33 @@ public class UserController {
   private UserService userService;
 
   @GetMapping
-  public List<User> getAllUsers() {
-    return userService.getAllUsers();
+  public CollectionModel<EntityModel<User>> getAllUsers() {
+    List<User> users = userService.getAllUsers();
+
+    List<EntityModel<User>> userResources = users.stream()
+      .map(user -> EntityModel.of(
+        user,
+        WebMvcLinkBuilder.linkTo(
+          WebMvcLinkBuilder.methodOn(this.getClass()).getUserById(user.getId())
+        ).withSelfRel())).collect(Collectors.toList());
+
+    WebMvcLinkBuilder linkTo = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAllUsers());
+    CollectionModel<EntityModel<User>> resources = CollectionModel.of(userResources, linkTo.withRel("users"));
+
+    return resources;
   }
 
   @GetMapping("/{id}")
-  public Optional<User> getUserById(@PathVariable Long id) {
-    return userService.getUserById(id);
+  public EntityModel<User> getUserById(@PathVariable Long id) {
+    Optional<User> user = userService.getUserById(id);
+
+    if (user.isPresent()) {
+      return EntityModel.of(user.get(),
+        WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getUserById(id)).withSelfRel(),
+        WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAllUsers()).withRel("all-users"));
+    } else {
+      throw new UserNotFoundException("User not found with id: " + id);
+    }
   }
 
   @PostMapping("/login")
@@ -58,37 +83,25 @@ public class UserController {
   }
 
   @PostMapping
-  public Response createUser(@RequestBody User user) {
+  public EntityModel<User> createUser(@Validated @RequestBody User user) {
     User createdUser = userService.createUser(user);
 
-    if (createdUser == null) {
-      log.error("No se pudo crear el usuario", user);
-      return new Response(500, "No se pudo crear el usuario");
-    }
-
-    return new Response(200, "Usuario creado con éxito");
+    return EntityModel.of(createdUser,
+      WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getUserById(createdUser.getId())).withSelfRel(),
+      WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAllUsers()).withRel("all-users"));
   }
 
   @PutMapping("/{id}")
-  public Response updateUser(@PathVariable Long id, @RequestBody User user) {
-    try {
-      userService.updateUser(id, user);
-      return new Response(200, "Usuario actualizado con éxito");
-    } catch (Exception e) {
-      log.error("No se pudo actualizar el usuario", e);
-      return new Response(500, "No se pudo actualizar el usuario.");
-    }
+  public EntityModel<User> updateUser(@PathVariable Long id, @RequestBody User user) {
+    User updatedUser = userService.updateUser(id, user);
+
+    return EntityModel.of(updatedUser,
+      WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getUserById(id)).withSelfRel(),
+      WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAllUsers()).withRel("all-users"));
   }
 
   @DeleteMapping("/{id}")
-  public Response deleteUser(@PathVariable Long id) {
-    try {
-      userService.deleteUser(id);
-      return new Response(200, "Usuario eliminado con éxito");
-    } catch (Exception e) {
-      log.error("No se pudo eliminar el usuario", e);
-      return new Response(500, "No se pudo eliminar el usuario.");
-    }
-    
+  public void deleteUser(@PathVariable Long id) {
+    userService.deleteUser(id); 
   }
 }
