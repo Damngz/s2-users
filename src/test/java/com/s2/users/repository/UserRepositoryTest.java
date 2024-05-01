@@ -17,7 +17,7 @@ public class UserRepositoryTest {
   private UserRepository userRepository;
 
   @Test
-  public void saveUserTest() {
+  public void saveUserRepositoryTest() {
     User user = new User();
     user.setUsername("UserTest");
     user.setPassword("12345678");
@@ -30,5 +30,29 @@ public class UserRepositoryTest {
 
     assertNotNull(result.getId());
     assertEquals("UserTest", result.getUsername());
+  }
+
+  @Test
+  public void updateUserRepositoryTest() {
+    User user = new User();
+    user.setUsername("UserTest");
+    user.setPassword("12345678");
+    user.setEmail("usertest@example.com");
+    user.setName("User Test");
+    user.setAddress("Test address");
+    user.setRole("USER");
+  
+    userRepository.save(user);
+
+    user.setUsername("UpdatedUser");
+    user.setEmail("updateduser@example.com");
+
+    userRepository.save(user);
+
+    User updatedUser = userRepository.findById(user.getId()).orElse(null);
+
+    assertNotNull(updatedUser);
+    assertEquals("UpdatedUser", updatedUser.getUsername());
+    assertEquals("updateduser@example.com", updatedUser.getEmail());
   }
 }
